@@ -36,8 +36,8 @@ staging_events_table_create= ("CREATE TABLE IF NOT EXISTS stg_events ( \
   ts bigint NOT NULL, \
   userAgent varchar(200) NOT NULL, \
   userId int NOT NULL, \
-  PRIMARY KEY (sessionId, itemInSession) \
-);")
+  PRIMARY KEY (sessionId, itemInSession) ) \
+")
 
 staging_songs_table_create = ("CREATE TABLE IF NOT EXISTS stg_songs ( \
   num_songs int NOT NULL, \
@@ -50,33 +50,21 @@ staging_songs_table_create = ("CREATE TABLE IF NOT EXISTS stg_songs ( \
   title varchar(200) NOT NULL, \
   duration numeric NOT NULL, \
   year smallint, \
-  PRIMARY KEY(song_id) \
-);")
+  PRIMARY KEY(song_id) ); \
+")
 
-"""
 songplay_table_create = ("CREATE TABLE IF NOT EXISTS f_songplays ( \
   songplay_id IDENTITY(0, 1) PRIMARY KEY, \
-  start_time timestamp REFERENCES d_times(start_time), \
+  start_time timestamp REFERENCES d_times(start_time) sortkey, \
   user_id int REFERENCES d_users(user_id), \
   level varchar(10), \
-  song_id varchar(18) REFERENCES d_songs(song_id), \
+  song_id varchar(18) REFERENCES d_songs(song_id) distkey, \
   artist_id varchar(18) REFERENCES d_artists(artist_id), \
   session_id int, \
   location varchar(200), \
   user_agent varchar(200) \
-);")
-"""
-songplay_table_create = ("CREATE TABLE IF NOT EXISTS f_songplays ( \
-  songplay_id SERIAL PRIMARY KEY, \
-  start_time timestamp REFERENCES d_times(start_time), \
-  user_id int REFERENCES d_users(user_id), \
-  level varchar(10), \
-  song_id varchar(18) REFERENCES d_songs(song_id), \
-  artist_id varchar(18) REFERENCES d_artists(artist_id), \
-  session_id int, \
-  location varchar(200), \
-  user_agent varchar(200) \
-);")
+  ); \
+")
 
 user_table_create = ("CREATE TABLE IF NOT EXISTS d_users ( \
   user_id int PRIMARY KEY, \
@@ -84,33 +72,37 @@ user_table_create = ("CREATE TABLE IF NOT EXISTS d_users ( \
   last_name varchar(100) NOT NULL, \
   gender character NOT NULL, \
   level varchar(10) NOT NULL \
-);")
+  ) diststyle all; \
+")
 
 song_table_create = ("CREATE TABLE IF NOT EXISTS d_songs ( \
-  song_id varchar(18) PRIMARY KEY, \
+  song_id varchar(18) PRIMARY KEY sortkey distkey, \
   title varchar(200) NOT NULL, \
   artist_id varchar(18) NOT NULL, \
   year int, \
   duration numeric \
-);")
+  ); \
+")
 
 artist_table_create = ("CREATE TABLE IF NOT EXISTS d_artists ( \
-  artist_id varchar(18) PRIMARY KEY, \
+  artist_id varchar(18) PRIMARY KEY sortkey, \
   name varchar(200) NOT NULL, \
   location varchar(200), \
   latitude numeric, \
   longitude numeric \
-);")
+  ) diststyle all; \
+")
 
 time_table_create = ("CREATE TABLE IF NOT EXISTS d_times ( \
-  start_time timestamp PRIMARY KEY, \
+  start_time timestamp PRIMARY KEY sortkey, \
   hour smallint, \
   day smallint NOT NULL, \
   week smallint NOT NULL, \
   month smallint NOT NULL, \
   year smallint NOT NULL, \
   weekday smallint NOT NULL \
-);")
+  ) diststyle all; \
+")
 
 # STAGING TABLES
 
@@ -142,11 +134,11 @@ songplay_table_insert = ("INSERT INTO f_songplays \
   JOIN stg_songs AS songs \
   ON songs.artist_name = events.artist \
   AND songs.title = events.song \
-);")
+  );")
 
 user_table_insert = ("INSERT INTO d_users \
   (user_id, first_name, last_name, gender, level) \
-  SELECT DISTINCT ON (userId) AS user_id, \
+  SELECT userId AS user_id, \
     firstName AS first_name,  \
     lastName AS last_name, \
     gender, \
