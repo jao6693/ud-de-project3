@@ -4,18 +4,36 @@ from sql_queries import copy_table_queries, insert_table_queries
 
 
 def load_staging_tables(cur, conn):
+    """
+    This function is used once the connection to the Redshift cluster is effective
+    It executes SQL instructions based on queries provided in the copy_table_queries list
+    """
+
     for query in copy_table_queries:
         cur.execute(query)
         conn.commit()
 
 
 def insert_tables(cur, conn):
+    """
+    This function is used once the connection to the Redshift cluster is effective
+    It executes SQL instructions based on queries provided in the insert_table_queries list
+    """
     for query in insert_table_queries:
         cur.execute(query)
         conn.commit()
 
 
 def main():
+    """
+    This is the process that coordinates operations to populate the data model on the Redshift cluster
+    Basically it performs high level DML operations in sequence:
+    - connect to the Redshift cluster on AWS using the configuration provided
+    - call the load function to load data in staging tables
+    - call the insert function to insert data in DWH tables (staging + dimension & fact tables)
+    - close the connection
+    """
+
     config = configparser.ConfigParser()
     config.read('dwh.cfg')
 
