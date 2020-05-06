@@ -127,30 +127,32 @@ staging_songs_copy = ("""
 
 songplay_table_insert = ("INSERT INTO f_songplays \
   (start_time, user_id, level, song_id, artist_id, session_id, location, user_agent) \
-  SELECT to_timestamp(events.ts/1000) AT TIME ZONE 'UTC' AS start_time, \
+  SELECT TIMESTAMP 'epoch' + events.ts/1000 * INTERVAL '1 second' AS start_time, \
     events.userId AS user_id, \
+    events.level AS level, \
     songs.song_id AS song_id, \
     songs.artist_id AS artist_id, \
     events.sessionId AS session_id, \
-    events.artist_location AS location, \
+    songs.artist_location AS location, \
     events.userAgent AS user_agent \
   FROM stg_events AS events \
   JOIN stg_songs AS songs \
   ON songs.artist_name = events.artist \
   AND songs.title = events.song \
-  );")
+  ;")
 
 user_table_insert = ("INSERT INTO d_users \
   (user_id, start_time, first_name, last_name, gender, level) \
   SELECT userId AS user_id, \
-    to_timestamp(ts/1000) AT TIME ZONE 'UTC' AS start_time, \
+    TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second' AS start_time, \
     firstName AS first_name,  \
     lastName AS last_name, \
     gender, \
     level \
   FROM stg_events \
+  WHERE userId IS NOT NULL \
   ORDER BY user_id, start_time DESC \
-  ON CONFLICT DO NOTHING;")
+  ;")
 
 song_table_insert = ("INSERT INTO d_songs \
   (song_id, title, artist_id, year, duration) \
@@ -159,8 +161,7 @@ song_table_insert = ("INSERT INTO d_songs \
     artist_id, \
     year, \
     duration \
-  FROM stg_songs \
-  ON CONFLICT DO NOTHING;")
+  FROM stg_songs;")
 
 artist_table_insert = ("INSERT INTO d_artists \
   (artist_id, name, location, latitude, longitude) \
@@ -169,20 +170,18 @@ artist_table_insert = ("INSERT INTO d_artists \
     artist_location AS location, \
     artist_latitude AS latitude, \
     artist_longitude AS longitude \
-  FROM stg_songs \
-  ON CONFLICT DO NOTHING;")
+  FROM stg_songs;")
 
 time_table_insert = ("INSERT INTO d_times \
   (start_time, hour, day, week, month, year, weekday) \
-  SELECT to_timestamp(ts/1000) AT TIME ZONE 'UTC' AS start_time, \
-    EXTRACT(hour FROM to_timestamp(ts/1000) AT TIME ZONE 'UTC') AS hour, \
-    EXTRACT(day FROM to_timestamp(ts/1000) AT TIME ZONE 'UTC') AS day, \
-    EXTRACT(week FROM to_timestamp(ts/1000) AT TIME ZONE 'UTC') AS week, \
-    EXTRACT(month FROM to_timestamp(ts/1000) AT TIME ZONE 'UTC') AS month, \
-    EXTRACT(year FROM to_timestamp(ts/1000) AT TIME ZONE 'UTC') AS year, \
-    EXTRACT(DOW FROM to_timestamp(ts/1000) AT TIME ZONE 'UTC') AS weekday \
-  FROM stg_events \
-  ON CONFLICT DO NOTHING;")
+  SELECT TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second' AS start_time, \
+    EXTRACT(hour FROM TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second') AS hour, \
+    EXTRACT(day FROM TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second') AS day, \
+    EXTRACT(week FROM TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second') AS week, \
+    EXTRACT(month FROM TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second') AS month, \
+    EXTRACT(year FROM TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second') AS year, \
+    EXTRACT(DOW FROM TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second') AS weekday \
+  FROM stg_events;")
 
 # QUERY LISTS
 
