@@ -56,27 +56,30 @@ staging_songs_table_create = ("CREATE TABLE IF NOT EXISTS stg_songs ( \
 songplay_table_create = ("CREATE TABLE IF NOT EXISTS f_songplays ( \
   songplay_id bigint IDENTITY (0, 1) PRIMARY KEY, \
   start_time timestamp REFERENCES d_times(start_time) sortkey, \
-  user_id int REFERENCES d_users(user_id), \
+  user_id int, \
   level varchar(10), \
   song_id varchar(18) REFERENCES d_songs(song_id) distkey, \
   artist_id varchar(18) REFERENCES d_artists(artist_id), \
   session_id int, \
   location varchar(200), \
-  user_agent varchar(200) \
+  user_agent varchar(200), \
+  FOREIGN KEY (user_id, start_time) REFERENCES d_users(user_id, start_time) \
   ); \
 ")
 
 user_table_create = ("CREATE TABLE IF NOT EXISTS d_users ( \
-  user_id int PRIMARY KEY, \
-  first_name varchar(80) NOT NULL, \
-  last_name varchar(100) NOT NULL, \
-  gender character NOT NULL, \
-  level varchar(10) NOT NULL \
+  user_id int, \
+  start_time timestamp sortkey, \
+  first_name varchar(80), \
+  last_name varchar(100), \
+  gender character, \
+  level varchar(10) NOT NULL, \
+  PRIMARY KEY(user_id, start_time) \
   ) diststyle all; \
 ")
 
 song_table_create = ("CREATE TABLE IF NOT EXISTS d_songs ( \
-  song_id varchar(18) PRIMARY KEY sortkey distkey, \
+  song_id varchar(18) PRIMARY KEY distkey, \
   title varchar(200) NOT NULL, \
   artist_id varchar(18) NOT NULL, \
   year int, \
@@ -85,7 +88,7 @@ song_table_create = ("CREATE TABLE IF NOT EXISTS d_songs ( \
 ")
 
 artist_table_create = ("CREATE TABLE IF NOT EXISTS d_artists ( \
-  artist_id varchar(18) PRIMARY KEY sortkey, \
+  artist_id varchar(18) PRIMARY KEY, \
   name varchar(200) NOT NULL, \
   location varchar(200), \
   latitude numeric, \
@@ -138,15 +141,16 @@ songplay_table_insert = ("INSERT INTO f_songplays \
   );")
 
 user_table_insert = ("INSERT INTO d_users \
-  (user_id, first_name, last_name, gender, level) \
+  (user_id, start_time, first_name, last_name, gender, level) \
   SELECT userId AS user_id, \
+    to_timestamp(ts/1000) AT TIME ZONE 'UTC' AS start_time, \
     firstName AS first_name,  \
     lastName AS last_name, \
     gender, \
     level \
   FROM stg_events \
-  ON CONFLICT (user_id) DO UPDATE \
-  SET level = EXCLUDED.level;")
+  ORDER BY user_id, start_time DESC \
+  ON CONFLICT DO NOTHING;")
 
 song_table_insert = ("INSERT INTO d_songs \
   (song_id, title, artist_id, year, duration) \
