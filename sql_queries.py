@@ -17,7 +17,7 @@ time_table_drop = "DROP TABLE IF EXISTS d_times;"
 
 # CREATE TABLES
 
-staging_events_table_create = ("CREATE TABLE IF NOT EXISTS stg_events ( \
+staging_events_table_create= ("CREATE TABLE IF NOT EXISTS stg_events ( \
   artist varchar(200), \
   auth varchar(10) NOT NULL, \
   firstName varchar(80), \
@@ -123,6 +123,12 @@ staging_songs_copy = ("""
   JSON 'auto';
 """).format('stg_songs', config.get('S3', 'SONG_DATA'), config.get('IAM_ROLE', 'ARN'))
 
+# DATA CLEANSING
+staging_events_transform_userid = ("UPDATE stg_events \
+  SET userId = 0 \
+  WHERE userId IS NULL \
+  ;")
+
 # FINAL TABLES
 
 songplay_table_insert = ("INSERT INTO f_songplays \
@@ -150,7 +156,6 @@ user_table_insert = ("INSERT INTO d_users \
     gender, \
     level \
   FROM stg_events \
-  WHERE userId IS NOT NULL \
   ORDER BY user_id, start_time DESC \
   ;")
 
@@ -187,8 +192,13 @@ time_table_insert = ("INSERT INTO d_times \
 
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop,
                       user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
+
 create_table_queries = [staging_events_table_create, staging_songs_table_create, user_table_create,
                         song_table_create, artist_table_create, time_table_create, songplay_table_create]
-copy_table_queries = [staging_events_copy, staging_songs_copy]
+
+copy_table_queries = [staging_events_copy, staging_songs_copy]                         
+
+transform_table_queries = [staging_events_transform_userid]
+
 insert_table_queries = [user_table_insert, song_table_insert,
                         artist_table_insert, time_table_insert, songplay_table_insert]
