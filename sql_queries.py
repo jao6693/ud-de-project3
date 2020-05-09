@@ -17,7 +17,7 @@ time_table_drop = "DROP TABLE IF EXISTS d_times;"
 
 # CREATE TABLES
 
-staging_events_table_create= ("CREATE TABLE IF NOT EXISTS stg_events ( \
+staging_events_table_create = ("CREATE TABLE IF NOT EXISTS stg_events ( \
   artist varchar(200), \
   auth varchar(10) NOT NULL, \
   firstName varchar(80), \
@@ -55,26 +55,27 @@ staging_songs_table_create = ("CREATE TABLE IF NOT EXISTS stg_songs ( \
 
 songplay_table_create = ("CREATE TABLE IF NOT EXISTS f_songplays ( \
   songplay_id bigint IDENTITY (0, 1) PRIMARY KEY, \
-  start_time timestamp REFERENCES d_times(start_time) sortkey, \
-  user_id int, \
+  start_time timestamp NOT NULL REFERENCES d_times(start_time) sortkey, \
+  user_id int NOT NULL REFERENCES d_users(user_id), \
   level varchar(10), \
-  song_id varchar(18) REFERENCES d_songs(song_id) distkey, \
-  artist_id varchar(18) REFERENCES d_artists(artist_id), \
+  song_id varchar(18) NOT NULL REFERENCES d_songs(song_id) distkey, \
+  artist_id varchar(18) NOT NULL REFERENCES d_artists(artist_id), \
   session_id int, \
   location varchar(200), \
-  user_agent varchar(200), \
-  FOREIGN KEY (user_id, start_time) REFERENCES d_users(user_id, start_time) \
+  user_agent varchar(200) \
   ); \
 ")
 
+# NOTE: THE LEVEL IS A FACT (MIGHT CHANGE OVERTIME) AND NOT AN ATTRIBUTE
+# ANALYSIS ON LEVEL SHOULD BE BASED ON VALUE FROM FACT TABLE
+# WHY IS IT IN THE USER TABLE ???
+
 user_table_create = ("CREATE TABLE IF NOT EXISTS d_users ( \
-  user_id int, \
-  start_time timestamp sortkey, \
+  user_id int PRIMARY KEY, \
   first_name varchar(80), \
   last_name varchar(100), \
   gender character, \
-  level varchar(10) NOT NULL, \
-  PRIMARY KEY(user_id, start_time) \
+  level varchar(10) NOT NULL \
   ) diststyle all; \
 ")
 
@@ -147,16 +148,21 @@ songplay_table_insert = ("INSERT INTO f_songplays \
   AND songs.title = events.song \
   ;")
 
+# LEVEL IS A FACT AND SHOULD NOT BE PART OF THE USER TABLE
+# SO WHATEVER THE VALUE SELECTED JUST FILL IN ANY VALUE HERE
 user_table_insert = ("INSERT INTO d_users \
-  (user_id, start_time, first_name, last_name, gender, level) \
-  SELECT userId AS user_id, \
-    TIMESTAMP 'epoch' + ts/1000 * INTERVAL '1 second' AS start_time, \
+  (user_id, first_name, last_name, gender, level) \
+  SELECT DISTINCT userId AS user_id, \
     firstName AS first_name,  \
     lastName AS last_name, \
     gender, \
     level \
-  FROM stg_events \
-  ORDER BY user_id, start_time DESC \
+  FROM stg_events AS a\
+  WHERE level = ( \
+    SELECT level \
+    FROM stg_events AS b\
+    WHERE b.userId = a.userId \
+    LIMIT 1 ) \
   ;")
 
 song_table_insert = ("INSERT INTO d_songs \
@@ -196,7 +202,7 @@ drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songp
 create_table_queries = [staging_events_table_create, staging_songs_table_create, user_table_create,
                         song_table_create, artist_table_create, time_table_create, songplay_table_create]
 
-copy_table_queries = [staging_events_copy, staging_songs_copy]                         
+copy_table_queries = [staging_events_copy, staging_songs_copy]
 
 transform_table_queries = [staging_events_transform_userid]
 

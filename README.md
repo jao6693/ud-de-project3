@@ -25,11 +25,9 @@ The main idea is to build a 3-step process as follow :
 ## Design considerations  
 
 The staging tables are relatively permissive and are used to transfer JSON content from S3 to SQL tables  
-The fact and dimension tables require a bit more of attention  
+The fact and dimension tables require a bit more of attention   
 
-The users table is now <b>time-dependent</b>, which allows to track changes on an account when upgrading/downgrading, for instance  
-
-Also, in order to have analytic queries running without performance issues, `distkey` and `sortkey` have been positioned on fields of fact and dimension tables.  
+In order to have analytic queries running without performance issues, `distkey` and `sortkey` have been positioned on fields of fact and dimension tables.  
 
 The songs table is relatively large, and the `song_id` field is the one with <b>highest cardinality</b> in the data model. That's why a `distkey` has been positioned on this field in the fact table as well as in the songs dimension table.  
 
